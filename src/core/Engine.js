@@ -54,8 +54,7 @@ var Engine = {};
             render: {
                 element: element,
                 controller: Render
-            },
-            autoheartbeat: true
+            }
         };
         
         var engine = Common.extend(defaults, options);
@@ -86,120 +85,126 @@ var Engine = {};
      * @param {engine} engine
      */
     Engine.run = function(engine) {
-        var timing = engine.timing;
-        
         (function render(timestamp){
-            if(engine.autoheartbeat === true) {
-                _requestAnimationFrame(render);
-            }
-
-            if (!engine.enabled)
-                return;
-
-            // timestamp is undefined on the first update
-            timestamp = timestamp || 0;
-
-            // create an event object
-            var event = {
-                timestamp: timestamp
-            };
-
-           /**
-            * Fired at the start of a tick, before any updates to the engine or timing
-            *
-            * @event beforeTick
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            Events.trigger(engine, 'beforeTick', event);
-
-            var frameTime = timestamp - timing.timestamp;
-            timing.timestamp = timestamp;
-            timing.accumulator += Math.floor(frameTime);
-
-            // if world has been modified, clear the render scene graph
-            if (engine.world.isModified)
-                engine.render.controller.clear(engine.render);
-
-            var totalUpdates = 0;
-
-            while(timing.accumulator >= timing.delta && totalUpdates < timing.maxStepsPerCycle) {
-                /**
-                * Fired after engine timing updated, but just before engine state updated
-                *
-                * @event tick
-                * @param {} event An event object
-                * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-                * @param {} event.source The source object of the event
-                * @param {} event.name The name of the event
-                */
-                /**
-                * Fired just before an update
-                *
-                * @event beforeUpdate
-                * @param {} event An event object
-                * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-                * @param {} event.source The source object of the event
-                * @param {} event.name The name of the event
-                */
-                Events.trigger(engine, 'tick beforeUpdate', event);
-                
-                // update
-                Engine.update(engine, timing.delta, timing.correction);
-
-                // trigger events that may have occured during the step
-                _triggerCollisionEvents(engine);
-
-                timing.accumulator -= timing.delta;
-                totalUpdates += 1;
-            }            
-
-            /**
-            * Fired after engine update and all collision events
-            *
-            * @event afterUpdate
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            /**
-            * Fired just before rendering
-            *
-            * @event beforeRender
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            Events.trigger(engine, 'afterUpdate beforeRender', event);
-
-            // render
-            if (engine.render.options.enabled)
-                engine.render.controller.world(engine);
-
-            /**
-            * Fired after rendering
-            *
-            * @event afterRender
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            /**
-            * Fired after engine update and after rendering
-            *
-            * @event afterTick
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            Events.trigger(engine, 'afterTick afterRender', event);
+            _requestAnimationFrame(render);
+            Engine.heartbeat(engine, timestamp);
         })();
+    };
+
+    /**
+     * Description
+     * @method step
+     * @param {engine} engine
+     * @param {timestamp} timestamp in milliseconds
+     */
+    Engine.heartbeat = function(engine, timestamp) {
+        if (!engine.enabled)
+            return;
+
+        var timing = engine.timing;
+
+        // timestamp is undefined on the first update
+        timestamp = timestamp || 0;
+
+        // create an event object
+        var event = {
+            timestamp: timestamp
+        };
+
+       /**
+        * Fired at the start of a tick, before any updates to the engine or timing
+        *
+        * @event beforeTick
+        * @param {} event An event object
+        * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+        * @param {} event.source The source object of the event
+        * @param {} event.name The name of the event
+        */
+        Events.trigger(engine, 'beforeTick', event);
+
+        var frameTime = timestamp - timing.timestamp;
+        timing.timestamp = timestamp;
+        timing.accumulator += Math.floor(frameTime);
+
+        // if world has been modified, clear the render scene graph
+        if (engine.world.isModified)
+            engine.render.controller.clear(engine.render);
+
+        var totalUpdates = 0;
+
+        while(timing.accumulator >= timing.delta && totalUpdates < timing.maxStepsPerCycle) {
+            /**
+            * Fired after engine timing updated, but just before engine state updated
+            *
+            * @event tick
+            * @param {} event An event object
+            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+            * @param {} event.source The source object of the event
+            * @param {} event.name The name of the event
+            */
+            /**
+            * Fired just before an update
+            *
+            * @event beforeUpdate
+            * @param {} event An event object
+            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+            * @param {} event.source The source object of the event
+            * @param {} event.name The name of the event
+            */
+            Events.trigger(engine, 'tick beforeUpdate', event);
+            
+            // update
+            Engine.update(engine, timing.delta, timing.correction);
+
+            // trigger events that may have occured during the step
+            _triggerCollisionEvents(engine);
+
+            timing.accumulator -= timing.delta;
+            totalUpdates += 1;
+        }            
+
+        /**
+        * Fired after engine update and all collision events
+        *
+        * @event afterUpdate
+        * @param {} event An event object
+        * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+        * @param {} event.source The source object of the event
+        * @param {} event.name The name of the event
+        */
+        /**
+        * Fired just before rendering
+        *
+        * @event beforeRender
+        * @param {} event An event object
+        * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+        * @param {} event.source The source object of the event
+        * @param {} event.name The name of the event
+        */
+        Events.trigger(engine, 'afterUpdate beforeRender', event);
+
+        // render
+        if (engine.render.options.enabled)
+            engine.render.controller.world(engine);
+        /**
+        * Fired after rendering
+        *
+        * @event afterRender
+        * @param {} event An event object
+        * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+        * @param {} event.source The source object of the event
+        * @param {} event.name The name of the event
+        */
+        /**
+        * Fired after engine update and after rendering
+        *
+        * @event afterTick
+        * @param {} event An event object
+        * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+        * @param {} event.source The source object of the event
+        * @param {} event.name The name of the event
+        */
+        Events.trigger(engine, 'afterTick afterRender', event);
     };
 
     /**
