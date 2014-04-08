@@ -48,12 +48,14 @@ var Engine = {};
                 timestamp: 0,
                 delta: _delta,
                 correction: 1,
-                maxStepsPerCycle: _maxStepsPerCycle
+                maxStepsPerCycle: _maxStepsPerCycle,
+                accumulator: 0
             },
             render: {
                 element: element,
                 controller: Render
-            }
+            },
+            autoheartbeat: true
         };
         
         var engine = Common.extend(defaults, options);
@@ -85,10 +87,11 @@ var Engine = {};
      */
     Engine.run = function(engine) {
         var timing = engine.timing;
-        var accumulator = 0;
-
+        
         (function render(timestamp){
-            _requestAnimationFrame(render);
+            if(engine.autoheartbeat === true) {
+                _requestAnimationFrame(render);
+            }
 
             if (!engine.enabled)
                 return;
@@ -114,15 +117,15 @@ var Engine = {};
 
             var frameTime = timestamp - timing.timestamp;
             timing.timestamp = timestamp;
-            accumulator += Math.floor(frameTime);
+            timing.accumulator += Math.floor(frameTime);
 
             // if world has been modified, clear the render scene graph
             if (engine.world.isModified)
                 engine.render.controller.clear(engine.render);
 
-            var totalSteps = 0;
+            var totalUpdates = 0;
 
-            while(accumulator >= timing.delta && totalSteps < timing.maxStepsPerCycle) {
+            while(timing.accumulator >= timing.delta && totalUpdates < timing.maxStepsPerCycle) {
                 /**
                 * Fired after engine timing updated, but just before engine state updated
                 *
@@ -146,12 +149,12 @@ var Engine = {};
                 // update
                 Engine.update(engine, timing.delta, timing.correction);
 
-                accumulator -= timing.delta;
-                totalSteps += 1;
-            }            
+                // trigger events that may have occured during the step
+                _triggerCollisionEvents(engine);
 
-            // trigger events that may have occured during the step
-            _triggerCollisionEvents(engine);
+                timing.accumulator -= timing.delta;
+                totalUpdates += 1;
+            }            
 
             /**
             * Fired after engine update and all collision events
