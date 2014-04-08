@@ -14,8 +14,8 @@ var Engine = {};
 (function() {
 
     var _fps = 60,
-        _deltaSampleSize = _fps,
-        _delta = 1000 / _fps;
+        _delta = Math.ceil(1000 / _fps), // should be integer value otherwise floating difference between browsers will lead inconsistencies
+        _maxStepsPerCycle = 20; // only update this many times per frame
         
     var _requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame
                                       || window.mozRequestAnimationFrame || window.msRequestAnimationFrame 
@@ -48,8 +48,7 @@ var Engine = {};
                 timestamp: 0,
                 delta: _delta,
                 correction: 1,
-                deltaMin: 1000 / _fps,
-                deltaMax: 1000 / (_fps * 0.5)
+                maxStepsPerCycle: _maxStepsPerCycle
             },
             render: {
                 element: element,
@@ -86,12 +85,8 @@ var Engine = {};
      * @param {engine} engine
      */
     Engine.run = function(engine) {
-        var timing = engine.timing,
-            delta,
-            correction,
-            counterTimestamp = 0,
-            frameCounter = 0,
-            deltaHistory = [];
+        var timing = engine.timing;
+        var accumulator = 0;
 
         (function render(timestamp){
             _requestAnimationFrame(render);
@@ -107,7 +102,7 @@ var Engine = {};
                 timestamp: timestamp
             };
 
-            /**
+           /**
             * Fired at the start of a tick, before any updates to the engine or timing
             *
             * @event beforeTick
@@ -118,59 +113,43 @@ var Engine = {};
             */
             Events.trigger(engine, 'beforeTick', event);
 
-            delta = (timestamp - timing.timestamp) || _delta;
-
-            // optimistically filter delta over a few frames, to improve stability
-            deltaHistory.push(delta);
-            deltaHistory = deltaHistory.slice(-_deltaSampleSize);
-            delta = Math.min.apply(null, deltaHistory);
-            
-            // limit delta
-            delta = delta < engine.timing.deltaMin ? engine.timing.deltaMin : delta;
-            delta = delta > engine.timing.deltaMax ? engine.timing.deltaMax : delta;
-
-            // verlet time correction
-            correction = delta / timing.delta;
-
-            // update engine timing object
+            var frameTime = timestamp - timing.timestamp;
             timing.timestamp = timestamp;
-            timing.correction = correction;
-            timing.delta = delta;
-            
-            // fps counter
-            frameCounter += 1;
-            if (timestamp - counterTimestamp >= 1000) {
-                timing.fps = frameCounter * ((timestamp - counterTimestamp) / 1000);
-                counterTimestamp = timestamp;
-                frameCounter = 0;
-            }
-
-            /**
-            * Fired after engine timing updated, but just before engine state updated
-            *
-            * @event tick
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            /**
-            * Fired just before an update
-            *
-            * @event beforeUpdate
-            * @param {} event An event object
-            * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-            * @param {} event.source The source object of the event
-            * @param {} event.name The name of the event
-            */
-            Events.trigger(engine, 'tick beforeUpdate', event);
+            accumulator += Math.floor(frameTime);
 
             // if world has been modified, clear the render scene graph
             if (engine.world.isModified)
                 engine.render.controller.clear(engine.render);
 
-            // update
-            Engine.update(engine, delta, correction);
+            var totalSteps = 0;
+
+            while(accumulator >= timing.delta && totalSteps < timing.maxStepsPerCycle) {
+                /**
+                * Fired after engine timing updated, but just before engine state updated
+                *
+                * @event tick
+                * @param {} event An event object
+                * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+                * @param {} event.source The source object of the event
+                * @param {} event.name The name of the event
+                */
+                /**
+                * Fired just before an update
+                *
+                * @event beforeUpdate
+                * @param {} event An event object
+                * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
+                * @param {} event.source The source object of the event
+                * @param {} event.name The name of the event
+                */
+                Events.trigger(engine, 'tick beforeUpdate', event);
+                
+                // update
+                Engine.update(engine, timing.delta, timing.correction);
+
+                accumulator -= timing.delta;
+                totalSteps += 1;
+            }            
 
             // trigger events that may have occured during the step
             _triggerCollisionEvents(engine);
