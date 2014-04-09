@@ -8,8 +8,8 @@ var Sleeping = {};
 
 (function() {
 
-    var _motionWakeThreshold = 0.18,
-        _motionSleepThreshold = 0.08,
+    var _motionWakeThreshold = 0.2,
+        _motionSleepThreshold = 0.1,
         _minBias = 0.9;
 
     /**
