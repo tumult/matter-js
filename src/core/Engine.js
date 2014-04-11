@@ -66,7 +66,7 @@ var Engine = {};
 
         engine.broadphase = engine.broadphase || {
             current: 'grid',
-            grid: {
+            'grid': {
                 controller: Grid,
                 instance: Grid.create(),
                 detector: Detector.collisions
