@@ -49,7 +49,8 @@ var Engine = {};
                 delta: _delta,
                 correction: 1,
                 maxStepsPerCycle: _maxStepsPerCycle,
-                accumulator: 0
+                accumulator: 0,
+                totalUpdates: 0
             },
             render: {
                 element: element,
@@ -130,9 +131,9 @@ var Engine = {};
         if (engine.world.isModified)
             engine.render.controller.clear(engine.render);
 
-        var totalUpdates = 0;
+        var numberOfUpdatesThisCycle = 0;
 
-        while(timing.accumulator >= timing.delta && totalUpdates < timing.maxStepsPerCycle) {
+        while(timing.accumulator >= timing.delta && numberOfUpdatesThisCycle < timing.maxStepsPerCycle) {
             /**
             * Fired after engine timing updated, but just before engine state updated
             *
@@ -160,7 +161,8 @@ var Engine = {};
             _triggerCollisionEvents(engine);
 
             timing.accumulator -= timing.delta;
-            totalUpdates += 1;
+            timing.totalUpdates += 1;
+            numberOfUpdatesThisCycle += 1;
         }            
 
         /**
@@ -265,9 +267,9 @@ var Engine = {};
 
         // update collision pairs
         var pairs = engine.pairs,
-            timestamp = engine.timing.timestamp;
-        Pairs.update(pairs, collisions, timestamp);
-        Pairs.removeOld(pairs, timestamp);
+            localTimestamp = engine.timing.totalUpdates * engine.timing.delta;
+        Pairs.update(pairs, collisions, localTimestamp);
+        Pairs.removeOld(pairs, localTimestamp);
 
         // wake up bodies involved in collisions
         if (engine.enableSleeping)
