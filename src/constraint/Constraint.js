@@ -119,7 +119,7 @@ var Constraint = {};
             force = Vector.mult(delta, difference * 0.5 * constraint.stiffness);
         
         // if difference is very small, we can skip
-        if (Math.abs(1 - (currentLength / constraint.length)) < _minDifference)
+        if (Common.abs(1 - (currentLength / constraint.length)) < _minDifference)
             return;
 
         var velocityPointA,

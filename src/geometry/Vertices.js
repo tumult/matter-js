@@ -73,7 +73,7 @@ var Vertices = {};
             j = i;
         }
 
-        return Math.abs(area) / 2;
+        return Common.abs(area) / 2;
     };
 
     /**
@@ -94,7 +94,7 @@ var Vertices = {};
         // http://www.physicsforums.com/showthread.php?t=25293
         for (var n = 0; n < v.length; n++) {
             j = (n + 1) % v.length;
-            cross = Math.abs(Vector.cross(v[j], v[n]));
+            cross = Common.abs(Vector.cross(v[j], v[n]));
             numerator += cross * (Vector.dot(v[j], v[j]) + Vector.dot(v[j], v[n]) + Vector.dot(v[n], v[n]));
             denominator += cross;
         }
@@ -135,8 +135,8 @@ var Vertices = {};
         if (angle === 0)
             return;
 
-        var cos = Math.cos(angle),
-            sin = Math.sin(angle);
+        var cos = Common.cos(angle),
+            sin = Common.sin(angle);
 
         for (var i = 0; i < vertices.length; i++) {
             var vertice = vertices[i],

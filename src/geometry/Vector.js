@@ -18,7 +18,7 @@ var Vector = {};
      * @return {number} The magnitude of the vector
      */
     Vector.magnitude = function(vector) {
-        return Math.sqrt((vector.x * vector.x) + (vector.y * vector.y));
+        return Common.sqrt((vector.x * vector.x) + (vector.y * vector.y));
     };
 
     /**
@@ -39,7 +39,7 @@ var Vector = {};
      * @return {vector} A new vector rotated
      */
     Vector.rotate = function(vector, angle) {
-        var cos = Math.cos(angle), sin = Math.sin(angle);
+        var cos = Common.cos(angle), sin = Common.sin(angle);
         return {
             x: vector.x * cos - vector.y * sin,
             y: vector.x * sin + vector.y * cos
@@ -55,7 +55,7 @@ var Vector = {};
      * @return {vector} A new vector rotated about the point
      */
     Vector.rotateAbout = function(vector, angle, point) {
-        var cos = Math.cos(angle), sin = Math.sin(angle);
+        var cos = Common.cos(angle), sin = Common.sin(angle);
         return {
             x: point.x + ((vector.x - point.x) * cos - (vector.y - point.y) * sin),
             y: point.y + ((vector.x - point.x) * sin + (vector.y - point.y) * cos)

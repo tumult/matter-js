@@ -285,6 +285,41 @@ var Common = {};
         }
         return -1;
     };
+	
+    /**
+     * Wrap sin to be browser-agnostic
+     * @method sin
+     * @param {x} A number (given in radians)
+     */
+    Common.sin = function(x) {
+        return parseFloat(Math.sin(x).toFixed(8));
+    };
 
+    /**
+     * Wrap cos to be browser-agnostic
+     * @method cos
+     * @param {x} A number (given in radians)
+     */
+    Common.cos = function(x) {
+        return parseFloat(Math.cos(x).toFixed(8));
+    };
+
+    /**
+     * Wrap sqrt to be browser-agnostic
+     * @method sqrt
+     * @param {x} A number
+     */
+	Common.sqrt = function(x) {
+		return parseFloat(Math.sqrt(x).toFixed(8));
+    };
+
+    /**
+     * Wrap abs to be browser-agnostic
+     * @method abs
+     * @param {x} A number
+     */
+	Common.abs = function(x) {
+        return parseFloat(Math.abs(x).toFixed(8));
+    };
 
 })();

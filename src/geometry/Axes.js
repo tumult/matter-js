@@ -45,8 +45,8 @@ var Axes = {};
         if (angle === 0)
             return;
         
-        var cos = Math.cos(angle),
-            sin = Math.sin(angle);
+        var cos = Common.cos(angle),
+            sin = Common.sin(angle);
 
         for (var i = 0; i < axes.length; i++) {
             var axis = axes[i],
