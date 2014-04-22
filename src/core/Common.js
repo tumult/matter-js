@@ -280,11 +280,47 @@ var Common = {};
     Common.nextId = function() {
         return Common._nextId++;
     };
+	
+    /**
+     * Wrap sin to be browser-agnostic
+     * @method sin
+     * @param {x} A number (given in radians)
+     */
+    Common.sin = function(x) {
+        return parseFloat(Math.sin(x).toFixed(8));
+    };
+
+    /**
+     * Wrap cos to be browser-agnostic
+     * @method cos
+     * @param {x} A number (given in radians)
+     */
+    Common.cos = function(x) {
+        return parseFloat(Math.cos(x).toFixed(8));
+    };
 
     var _seededRandom = function() {
         // https://gist.github.com/ngryman/3830489
         Common._seed = (Common._seed * 9301 + 49297) % 233280;
         return Common._seed / 233280;
+	};
+
+    /**
+     * Wrap sqrt to be browser-agnostic
+     * @method sqrt
+     * @param {x} A number
+     */
+	Common.sqrt = function(x) {
+		return parseFloat(Math.sqrt(x).toFixed(8));
+    };
+
+    /**
+     * Wrap abs to be browser-agnostic
+     * @method abs
+     * @param {x} A number
+     */
+	Common.abs = function(x) {
+        return parseFloat(Math.abs(x).toFixed(8));
     };
 
 })();

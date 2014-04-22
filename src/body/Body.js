@@ -236,7 +236,7 @@ var Body = {};
     Body.setAngularVelocity = function(body, velocity) {
         body.anglePrev = body.angle - velocity;
         body.angularVelocity = velocity;
-        body.angularSpeed = Math.abs(body.angularVelocity);
+        body.angularSpeed = Common.abs(body.angularVelocity);
     };
 
     /**
@@ -382,7 +382,7 @@ var Body = {};
 
         // track speed and acceleration
         body.speed = Vector.magnitude(body.velocity);
-        body.angularSpeed = Math.abs(body.angularVelocity);
+        body.angularSpeed = Common.abs(body.angularVelocity);
 
         // transform the body geometry
         Vertices.translate(body.vertices, body.velocity);

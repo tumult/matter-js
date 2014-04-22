@@ -139,8 +139,8 @@ var Bodies = {};
 
         for (var i = 0; i < sides; i += 1) {
             var angle = offset + (i * theta),
-                xx = Math.cos(angle) * radius,
-                yy = Math.sin(angle) * radius;
+                xx = Common.cos(angle) * radius,
+                yy = Common.sin(angle) * radius;
 
             path += 'L ' + xx.toFixed(3) + ' ' + yy.toFixed(3) + ' ';
         }
