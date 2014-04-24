@@ -45,17 +45,22 @@ var Vertices = {};
      * Description
      * @method centre
      * @param {vertices} vertices
-     * @return {vector} The centre point
+     * @return {vector} The center based on min/max x and y points
      */
     Vertices.centre = function(vertices) {
-        var cx = 0, cy = 0;
+        var minX = Number.MAX_VALUE;
+        var maxX = Number.MIN_VALUE;
+        var minY = Number.MAX_VALUE;
+        var maxY = Number.MIN_VALUE;
 
         for (var i = 0; i < vertices.length; i++) {
-            cx += vertices[i].x;
-            cy += vertices[i].y;
+            minX = Math.min(vertices[i].x, minX);
+            maxX = Math.max(vertices[i].x, maxX);
+            minY = Math.min(vertices[i].y, minY);
+            maxY = Math.max(vertices[i].y, maxY);
         }
 
-        return { x: cx / vertices.length, y: cy / vertices.length };
+        return { x: ((maxX + minX) / 2), y: ((maxY + minY) / 2) };
     };
 
     /**
