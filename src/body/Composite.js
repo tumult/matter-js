@@ -357,5 +357,37 @@ var Composite = {};
 
         return composites;
     };
+	
+	/**
+     * Returns gravity or looks up the ancestor chain to find a value
+     * @method resolvedGravity
+     * @param {composite} composite
+     * @return {gravity} x,y for the gravity
+     */
+    Composite.resolvedGravity = function(composite) {
+        if(composite.gravity) {
+			return composite.gravity;
+		}
+		if(composite.parent) {
+			return Composite.resolvedGravity(composite.parent);
+		}
+		return null;
+    };
+	
+	/**
+     * Returns bounds or looks up the ancestor chain to find a value
+     * @method resolvedBounds
+     * @param {composite} composite
+     * @return {bounds} x, y, width, height for the gravity
+     */
+    Composite.resolvedBounds = function(composite) {
+        if(composite.bounds) {
+			return composite.bounds;
+		}
+		if(composite.parent) {
+			return Composite.resolvedBounds(composite.parent);
+		}
+		return null;
+    };
 
 })();
