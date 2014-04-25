@@ -28,7 +28,7 @@ var Detector = {};
 
             // NOTE: could share a function for the below, but may drop performance?
 
-            if (bodyA.groupId && bodyB.groupId && bodyA.groupId === bodyB.groupId)
+            if (bodyA.groupId && bodyB.groupId && bodyA.groupId !== bodyB.groupId)
                 continue;
 
             if ((bodyA.isStatic || bodyA.isSleeping) && (bodyB.isStatic || bodyB.isSleeping))
@@ -87,7 +87,7 @@ var Detector = {};
 
                 // NOTE: could share a function for the below, but may drop performance?
 
-                if (bodyA.groupId && bodyB.groupId && bodyA.groupId === bodyB.groupId)
+                if (bodyA.groupId && bodyB.groupId && bodyA.groupId !== bodyB.groupId)
                     continue;
 
                 if ((bodyA.isStatic || bodyA.isSleeping) && (bodyB.isStatic || bodyB.isSleeping))
