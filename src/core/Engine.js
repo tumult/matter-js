@@ -66,8 +66,6 @@ var Engine = {};
         engine.world = World.create(engine.world);
         engine.pairs = Pairs.create();
         engine.metrics = engine.metrics || Metrics.create();
-        engine.input.mouse = engine.input.mouse || Mouse.create(engine.render.canvas);
-
         engine.broadphase = engine.broadphase || {
             current: 'grid',
             grid: {
@@ -167,7 +165,6 @@ var Engine = {};
 
             // trigger events that may have occured during the step
             _triggerCollisionEvents(engine);
-            _triggerMouseEvents(engine);
 
             // render
             Engine.render(engine);
@@ -342,40 +339,8 @@ var Engine = {};
     };
 
     /**
-     * Triggers mouse events
-     * @method _triggerMouseEvents
-     * @private
-     * @param {engine} engine
-     */
-    var _triggerMouseEvents = function(engine) {
-        var mouse = engine.input.mouse,
-            mouseEvents = mouse.sourceEvents;
-
-        if (mouseEvents.mousemove) {
-            Events.trigger(engine, 'mousemove', {
-                mouse: mouse
-            });
-        }
-
-        if (mouseEvents.mousedown) {
-            Events.trigger(engine, 'mousedown', {
-                mouse: mouse
-            });
-        }
-
-        if (mouseEvents.mouseup) {
-            Events.trigger(engine, 'mouseup', {
-                mouse: mouse
-            });
-        }
-
-        // reset the mouse state ready for the next step
-        Mouse.clearSourceEvents(mouse);
-    };
-
-    /**
      * Triggers collision events
-     * @method _triggerMouseEvents
+     * @method _triggerCollisionEvents
      * @private
      * @param {engine} engine
      */
