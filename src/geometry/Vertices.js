@@ -73,20 +73,19 @@ var Vertices = {};
      * @return {vector} The centre point
      */
     Vertices.centre = function(vertices) {
-        var area = Vertices.area(vertices, true),
-            centre = { x: 0, y: 0 },
-            cross,
-            temp,
-            j;
+        var minX = Number.MAX_VALUE;
+        var maxX = Number.MIN_VALUE;
+        var minY = Number.MAX_VALUE;
+        var maxY = Number.MIN_VALUE;
 
         for (var i = 0; i < vertices.length; i++) {
-            j = (i + 1) % vertices.length;
-            cross = Vector.cross(vertices[i], vertices[j]);
-            temp = Vector.mult(Vector.add(vertices[i], vertices[j]), cross);
-            centre = Vector.add(centre, temp);
+            minX = Math.min(vertices[i].x, minX);
+            maxX = Math.max(vertices[i].x, maxX);
+            minY = Math.min(vertices[i].y, minY);
+            maxY = Math.max(vertices[i].y, maxY);
         }
 
-        return Vector.div(centre, 6 * area);
+        return { x: ((maxX + minX) / 2), y: ((maxY + minY) / 2) };
     };
 
     /**
