@@ -323,4 +323,23 @@ var Common = {};
         return parseFloat(Math.abs(x).toFixed(8));
     };
 
+    /**
+     * Our own indexOf implementation since IE6-8 does not include one for arrays
+     * @method indexOf
+     * @param {array} haystack
+     * @param {object} needle
+     */
+    Common.indexOf = function(haystack, needle) {
+        if(haystack.indexOf) {
+            return haystack.indexOf(needle);
+        } else {
+            for(var i = 0; i < haystack.length; i++) {
+                if(haystack[i] == needle) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    };
+
 })();
