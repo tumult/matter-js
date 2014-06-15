@@ -187,6 +187,7 @@ var Engine = {};
             timing = engine.timing,
             broadphase = engine.broadphase[engine.broadphase.current],
             broadphasePairs = [],
+            composite,
             i;
 
         // increment timestamp
@@ -202,7 +203,10 @@ var Engine = {};
 
         // get lists of all bodies and constraints, no matter what composites they are in
         var allBodies = Composite.allBodies(world),
-            allConstraints = Composite.allConstraints(world);
+            allConstraints = Composite.allConstraints(world),
+            allCompositesIncludingWorld = Composite.allComposites(world);
+ 
+        allCompositesIncludingWorld.push(world);
 
         // reset metrics logging
         Metrics.reset(engine.metrics);
@@ -211,11 +215,15 @@ var Engine = {};
         if (engine.enableSleeping)
             Sleeping.update(allBodies);
 
-        // applies gravity to all bodies
-        Body.applyGravityAll(allBodies, world.gravity);
+        for(i = 0; i < allCompositesIncludingWorld.length; i++) {
+            composite = allCompositesIncludingWorld[i];
 
-        // update all body position and rotation by integration
-        Body.updateAll(allBodies, delta, timing.timeScale, correction, world.bounds);
+            // applies gravity to all bodies
+            Body.applyGravityAll(composite.bodies, Composite.resolvedGravity(composite));
+
+            // update all body position and rotation by integration
+            Body.updateAll(composite.bodies, delta, timing.timeScale, correction, Composite.resolvedBounds(composite));
+        }
 
         // update all constraints
         for (i = 0; i < engine.constraintIterations; i++) {
