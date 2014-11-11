@@ -1,6 +1,7 @@
 /**
 * The `Matter.Engine` module contains methods for creating and manipulating engines.
 * An engine is a controller that manages updating and rendering the simulation of the world.
+* See `Matter.Runner` for an optional game loop utility.
 *
 * See [Demo.js](https://github.com/liabru/matter-js/blob/master/demo/js/Demo.js) 
 * and [DemoMobile.js](https://github.com/liabru/matter-js/blob/master/demo/js/DemoMobile.js) for usage examples.
@@ -13,13 +14,8 @@ var Engine = {};
 (function() {
 
     var _fps = 60,
-        _deltaSampleSize = _fps,
         _delta = 1000 / _fps;
-        
-    var _requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame
-                                      || window.mozRequestAnimationFrame || window.msRequestAnimationFrame 
-                                      || function(callback){ window.setTimeout(function() { callback(Common.now()); }, _delta); };
-   
+
     /**
      * Creates a new engine. The options parameter is an object that specifies any properties you wish to override the defaults.
      * All properties have default values, and many are pre-calculated automatically based on other properties.
@@ -41,8 +37,6 @@ var Engine = {};
             velocityIterations: 4,
             constraintIterations: 2,
             enableSleeping: false,
-            timeScale: 1,
-            input: {},
             events: [],
             timing: {
                 fps: _fps,
@@ -52,11 +46,15 @@ var Engine = {};
                 deltaMin: 1000 / _fps,
                 deltaMax: 1000 / (_fps * 0.5),
                 timeScale: 1,
-                isFixed: false
+                isFixed: false,
+                frameRequestId: 0
             },
             render: {
                 element: element,
                 controller: Render
+            },
+            broadphase: {
+                controller: Grid
             }
         };
         
@@ -66,115 +64,15 @@ var Engine = {};
         engine.world = World.create(engine.world);
         engine.pairs = Pairs.create();
         engine.metrics = engine.metrics || Metrics.create();
-        engine.broadphase = engine.broadphase || {
-            current: 'grid',
-            'grid': {
-                controller: Grid,
-                instance: Grid.create(),
-                detector: Detector.collisions
-            },
-            'bruteForce': {
-                detector: Detector.bruteForce
-            }
-        };
+        engine.broadphase = engine.broadphase.controller.create(engine.broadphase);
 
         return engine;
     };
 
     /**
-     * An optional utility function that provides a game loop, that handles updating the engine for you.
-     * Calls `Engine.update` and `Engine.render` on the `requestAnimationFrame` event automatically.
-     * Handles time correction and non-fixed dynamic timing (if enabled). 
-     * Triggers `beforeTick`, `tick` and `afterTick` events.
-     * @method run
-     * @param {engine} engine
-     */
-    Engine.run = function(engine) {
-        var counterTimestamp = 0,
-            frameCounter = 0,
-            deltaHistory = [],
-            timePrev,
-            timeScalePrev = 1;
-
-        (function render(time){
-            _requestAnimationFrame(render);
-
-            if (!engine.enabled)
-                return;
-
-            var timing = engine.timing,
-                delta,
-                correction;
-
-            // create an event object
-            var event = {
-                timestamp: time
-            };
-
-            Events.trigger(engine, 'beforeTick', event);
-
-            if (timing.isFixed) {
-                // fixed timestep
-                delta = timing.delta;
-            } else {
-                // dynamic timestep based on wall clock between calls
-                delta = (time - timePrev) || timing.delta;
-                timePrev = time;
-
-                // optimistically filter delta over a few frames, to improve stability
-                deltaHistory.push(delta);
-                deltaHistory = deltaHistory.slice(-_deltaSampleSize);
-                delta = Math.min.apply(null, deltaHistory);
-                
-                // limit delta
-                delta = delta < timing.deltaMin ? timing.deltaMin : delta;
-                delta = delta > timing.deltaMax ? timing.deltaMax : delta;
-
-                // time correction for delta
-                correction = delta / timing.delta;
-
-                // update engine timing object
-                timing.delta = delta;
-            }
-
-            // time correction for time scaling
-            if (timeScalePrev !== 0)
-                correction *= timing.timeScale / timeScalePrev;
-
-            if (timing.timeScale === 0)
-                correction = 0;
-
-            timeScalePrev = timing.timeScale;
-            
-            // fps counter
-            frameCounter += 1;
-            if (time - counterTimestamp >= 1000) {
-                timing.fps = frameCounter * ((time - counterTimestamp) / 1000);
-                counterTimestamp = time;
-                frameCounter = 0;
-            }
-
-            Events.trigger(engine, 'tick', event);
-
-            // if world has been modified, clear the render scene graph
-            if (engine.world.isModified)
-                engine.render.controller.clear(engine.render);
-
-            // update
-            Engine.update(engine, delta, correction);
-
-            // trigger events that may have occured during the step
-            _triggerCollisionEvents(engine);
-
-            // render
-            Engine.render(engine);
-
-            Events.trigger(engine, 'afterTick', event);
-        })();
-    };
-
-    /**
-     * Moves the simulation forward in time by `delta` ms. Triggers `beforeUpdate` and `afterUpdate` events.
+     * Moves the simulation forward in time by `delta` ms. 
+     * Triggers `beforeUpdate` and `afterUpdate` events.
+     * Triggers `collisionStart`, `collisionActive` and `collisionEnd` events.
      * @method update
      * @param {engine} engine
      * @param {number} delta
@@ -185,7 +83,7 @@ var Engine = {};
 
         var world = engine.world,
             timing = engine.timing,
-            broadphase = engine.broadphase[engine.broadphase.current],
+            broadphase = engine.broadphase,
             broadphasePairs = [],
             i;
 
@@ -209,7 +107,7 @@ var Engine = {};
 
         // if sleeping enabled, call the sleeping controller
         if (engine.enableSleeping)
-            Sleeping.update(allBodies);
+            Sleeping.update(allBodies, timing.timeScale);
 
         // applies gravity to all bodies
         Body.applyGravityAll(allBodies, world.gravity);
@@ -228,11 +126,11 @@ var Engine = {};
 
             // if world is dirty, we must flush the whole grid
             if (world.isModified)
-                broadphase.controller.clear(broadphase.instance);
+                broadphase.controller.clear(broadphase);
 
             // update the grid buckets based on current bodies
-            broadphase.controller.update(broadphase.instance, allBodies, engine, world.isModified);
-            broadphasePairs = broadphase.instance.pairsList;
+            broadphase.controller.update(broadphase, allBodies, engine, world.isModified);
+            broadphasePairs = broadphase.pairsList;
         } else {
 
             // if no broadphase set, we just pass all bodies
@@ -250,7 +148,11 @@ var Engine = {};
 
         // wake up bodies involved in collisions
         if (engine.enableSleeping)
-            Sleeping.afterCollisions(pairs.list);
+            Sleeping.afterCollisions(pairs.list, timing.timeScale);
+
+        // trigger collision events
+        if (pairs.collisionStart.length > 0)
+            Events.trigger(engine, 'collisionStart', { pairs: pairs.collisionStart });
 
         // iteratively resolve velocity between collisions
         Resolver.preSolveVelocity(pairs.list);
@@ -263,6 +165,13 @@ var Engine = {};
             Resolver.solvePosition(pairs.list, timing.timeScale);
         }
         Resolver.postSolvePosition(allBodies);
+
+        // trigger collision events
+        if (pairs.collisionActive.length > 0)
+            Events.trigger(engine, 'collisionActive', { pairs: pairs.collisionActive });
+
+        if (pairs.collisionEnd.length > 0)
+            Events.trigger(engine, 'collisionEnd', { pairs: pairs.collisionEnd });
 
         // update metrics log
         Metrics.update(engine.metrics, engine);
@@ -330,41 +239,19 @@ var Engine = {};
         
         Pairs.clear(engine.pairs);
 
-        var broadphase = engine.broadphase[engine.broadphase.current];
+        var broadphase = engine.broadphase;
         if (broadphase.controller) {
             var bodies = Composite.allBodies(world);
-            broadphase.controller.clear(broadphase.instance);
-            broadphase.controller.update(broadphase.instance, bodies, engine, true);
+            broadphase.controller.clear(broadphase);
+            broadphase.controller.update(broadphase, bodies, engine, true);
         }
     };
 
     /**
-     * Triggers collision events
-     * @method _triggerCollisionEvents
-     * @private
+     * An alias for `Runner.run`, see `Matter.Runner` for more information.
+     * @method run
      * @param {engine} engine
      */
-    var _triggerCollisionEvents = function(engine) {
-        var pairs = engine.pairs;
-
-        if (pairs.collisionStart.length > 0) {
-            Events.trigger(engine, 'collisionStart', {
-                pairs: pairs.collisionStart
-            });
-        }
-
-        if (pairs.collisionActive.length > 0) {
-            Events.trigger(engine, 'collisionActive', {
-                pairs: pairs.collisionActive
-            });
-        }
-
-        if (pairs.collisionEnd.length > 0) {
-            Events.trigger(engine, 'collisionEnd', {
-                pairs: pairs.collisionEnd
-            });
-        }
-    };
 
     /*
     *
@@ -438,36 +325,6 @@ var Engine = {};
     * @event afterTick
     * @param {} event An event object
     * @param {DOMHighResTimeStamp} event.timestamp The timestamp of the current tick
-    * @param {} event.source The source object of the event
-    * @param {} event.name The name of the event
-    */
-
-    /**
-    * Fired when the mouse has moved (or a touch moves) during the last step
-    *
-    * @event mousemove
-    * @param {} event An event object
-    * @param {mouse} event.mouse The engine's mouse instance
-    * @param {} event.source The source object of the event
-    * @param {} event.name The name of the event
-    */
-
-    /**
-    * Fired when the mouse is down (or a touch has started) during the last step
-    *
-    * @event mousedown
-    * @param {} event An event object
-    * @param {mouse} event.mouse The engine's mouse instance
-    * @param {} event.source The source object of the event
-    * @param {} event.name The name of the event
-    */
-
-    /**
-    * Fired when the mouse is up (or a touch has ended) during the last step
-    *
-    * @event mouseup
-    * @param {} event An event object
-    * @param {mouse} event.mouse The engine's mouse instance
     * @param {} event.source The source object of the event
     * @param {} event.name The name of the event
     */
@@ -584,6 +441,16 @@ var Engine = {};
      */
 
     /**
+     * A `Boolean` that specifies if the `Engine.run` game loop should use a fixed timestep (otherwise it is variable).
+     * If timing is fixed, then the apparant simulation speed will change depending on the frame rate (but behaviour will be deterministic).
+     * If the timing is variable, then the apparant simulation speed will be constant (approximately, but at the cost of determininism).
+     *
+     * @property timing.isFixed
+     * @type boolean
+     * @default false
+     */
+
+    /**
      * A `Number` that specifies the time step between updates in milliseconds.
      * If `engine.timing.isFixed` is set to `true`, then `delta` is fixed.
      * If it is `false`, then `delta` can dynamically change to maintain the correct apparant simulation speed.
@@ -616,6 +483,14 @@ var Engine = {};
      * @property render
      * @type render
      * @default a Matter.Render instance
+     */
+
+    /**
+     * An instance of a broadphase controller. The default value is a `Matter.Grid` instance created by `Engine.create`.
+     *
+     * @property broadphase
+     * @type grid
+     * @default a Matter.Grid instance
      */
 
     /**

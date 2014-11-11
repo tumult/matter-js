@@ -161,7 +161,7 @@
         World.add(_engine.world, [ground, pyramid, ground2, pyramid2, rock, elastic]);
 
         Events.on(_engine, 'tick', function(event) {
-            if (_engine.input.mouse.button === -1 && (rock.position.x > 190 || rock.position.y < 430)) {
+            if (_mouseConstraint.mouse.button === -1 && (rock.position.x > 190 || rock.position.y < 430)) {
                 rock = Bodies.polygon(170, 450, 7, 20, rockOptions);
                 World.add(_engine.world, rock);
                 elastic.bodyB = rock;
@@ -293,6 +293,48 @@
         renderOptions.showCollisions = true;
     };
 
+    Demo.compositeManipulation = function() {
+        var _world = _engine.world;
+
+        Demo.reset();
+
+        var stack = Composites.stack(200, 200, 4, 4, 0, 0, function(x, y, column, row) {
+            return Bodies.rectangle(x, y, 40, 40);
+        });
+
+        World.add(_world, stack);
+
+        _world.gravity.y = 0;
+
+        _sceneEvents.push(
+            Events.on(_engine, 'tick', function(event) {
+                var time = _engine.timing.timestamp;
+
+                Composite.translate(stack, {
+                    x: Math.sin(time * 0.001) * 2,
+                    y: 0
+                });
+
+                Composite.rotate(stack, Math.sin(time * 0.001) * 0.01, {
+                    x: 300,
+                    y: 300
+                });
+
+                var scale = 1 + (Math.sin(time * 0.001) * 0.01);
+
+                Composite.scale(stack, scale, scale, {
+                    x: 300,
+                    y: 300
+                });
+            })
+        );
+
+        var renderOptions = _engine.render.options;
+        renderOptions.wireframes = false;
+        renderOptions.showAxes = true;
+        renderOptions.showCollisions = true;
+    };
+
     Demo.views = function() {
         var _world = _engine.world;
         
@@ -340,7 +382,7 @@
         _sceneEvents.push(
             Events.on(_engine, 'beforeTick', function() {
                 var world = _engine.world,
-                    mouse = _engine.input.mouse,
+                    mouse = _mouseConstraint.mouse,
                     render = _engine.render,
                     translate;
 
@@ -448,12 +490,12 @@
     
     Demo.chains = function() {
         var _world = _engine.world,
-            groupId = Body.nextGroupId();
+            group = Body.nextGroup(true);
         
         Demo.reset();
          
         var ropeA = Composites.stack(200, 100, 5, 2, 10, 10, function(x, y, column, row) {
-            return Bodies.rectangle(x, y, 50, 20, { groupId: groupId });
+            return Bodies.rectangle(x, y, 50, 20, { collisionFilter: { group: group } });
         });
         
         Composites.chain(ropeA, 0.5, 0, -0.5, 0, { stiffness: 0.8, length: 2 });
@@ -466,10 +508,10 @@
         
         World.add(_world, ropeA);
         
-        groupId = Body.nextGroupId();
+        group = Body.nextGroup(true);
         
         var ropeB = Composites.stack(500, 100, 5, 2, 10, 10, function(x, y, column, row) {
-            return Bodies.circle(x, y, 20, { groupId: groupId });
+            return Bodies.circle(x, y, 20, { collisionFilter: { group: group } });
         });
         
         Composites.chain(ropeB, 0.5, 0, -0.5, 0, { stiffness: 0.8, length: 2 });
@@ -485,12 +527,12 @@
 
     Demo.bridge = function() {
         var _world = _engine.world,
-            groupId = Body.nextGroupId();
+            group = Body.nextGroup(true);
         
         Demo.reset();
          
         var bridge = Composites.stack(150, 300, 9, 1, 10, 10, function(x, y, column, row) {
-            return Bodies.rectangle(x, y, 50, 20, { groupId: groupId });
+            return Bodies.rectangle(x, y, 50, 20, { collisionFilter: { group: group } });
         });
         
         Composites.chain(bridge, 0.5, 0, -0.5, 0, { stiffness: 0.9 });
@@ -937,8 +979,8 @@
         
         Demo.reset();
 
-        var groupId = Body.nextGroupId(),
-            particleOptions = { friction: 0.00001, groupId: groupId, render: { visible: false }},
+        var group = Body.nextGroup(true),
+            particleOptions = { friction: 0.00001, collisionFilter: { group: group }, render: { visible: false }},
             cloth = Composites.softBody(200, 200, 20, 12, 5, 5, false, 8, particleOptions);
 
         for (var i = 0; i < 20; i++) {
@@ -994,32 +1036,17 @@
         var _world = _engine.world;
         
         Demo.reset();
-        
-        var stack = Composites.stack(50, 100, 8, 4, 50, 50, function(x, y, column, row) {
-            return Bodies.circle(x, y, 15, { restitution: 1, render: { strokeStyle: '#777' } });
-        });
-        
-        World.add(_world, stack);
 
-        var renderOptions = _engine.render.options;
-        renderOptions.wireframes = false;
+        // bind events (_sceneEvents is only used for this demo)
 
-        var shakeScene = function(engine) {
-            var bodies = Composite.allBodies(engine.world);
+        _sceneEvents.push(
 
-            for (var i = 0; i < bodies.length; i++) {
-                var body = bodies[i];
+            // an example of using composite events on the world
+            Events.on(_world, 'afterAdd', function(event) {
+                console.log('added to world:', event.object);
+            })
 
-                if (!body.isStatic && body.position.y >= 500) {
-                    var forceMagnitude = 0.01 * body.mass;
-
-                    Body.applyForce(body, { x: 0, y: 0 }, { 
-                        x: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1]), 
-                        y: -forceMagnitude + Common.random() * -forceMagnitude
-                    });
-                }
-            }
-        };
+        );
 
         _sceneEvents.push(
 
@@ -1084,8 +1111,8 @@
 
         _sceneEvents.push(
 
-            // an example of using mouse events on an engine.input.mouse
-            Events.on(_engine, 'mousedown', function(event) {
+            // an example of using mouse events on a mouse
+            Events.on(_mouseConstraint, 'mousedown', function(event) {
                 var mousePosition = event.mouse.position;
                 console.log('mousedown at ' + mousePosition.x + ' ' + mousePosition.y);
                 _engine.render.options.background = 'cornsilk';
@@ -1096,14 +1123,42 @@
 
         _sceneEvents.push(
 
-            // an example of using mouse events on an engine.input.mouse
-            Events.on(_engine, 'mouseup', function(event) {
+            // an example of using mouse events on a mouse
+            Events.on(_mouseConstraint, 'mouseup', function(event) {
                 var mousePosition = event.mouse.position;
                 _engine.render.options.background = "white";
                 console.log('mouseup at ' + mousePosition.x + ' ' + mousePosition.y);
             })
 
         );
+
+        // scene code
+
+        var stack = Composites.stack(50, 100, 8, 4, 50, 50, function(x, y, column, row) {
+            return Bodies.circle(x, y, 15, { restitution: 1, render: { strokeStyle: '#777' } });
+        });
+        
+        World.add(_world, stack);
+
+        var renderOptions = _engine.render.options;
+        renderOptions.wireframes = false;
+
+        var shakeScene = function(engine) {
+            var bodies = Composite.allBodies(engine.world);
+
+            for (var i = 0; i < bodies.length; i++) {
+                var body = bodies[i];
+
+                if (!body.isStatic && body.position.y >= 500) {
+                    var forceMagnitude = 0.01 * body.mass;
+
+                    Body.applyForce(body, { x: 0, y: 0 }, { 
+                        x: (forceMagnitude + Common.random() * forceMagnitude) * Common.choose([1, -1]), 
+                        y: -forceMagnitude + Common.random() * -forceMagnitude
+                    });
+                }
+            }
+        };
     };
 
     Demo.sprites = function() {
@@ -1186,7 +1241,7 @@
 
         _sceneEvents.push(
             Events.on(_engine, 'afterRender', function() {
-                var mouse = _engine.input.mouse,
+                var mouse = _mouseConstraint.mouse,
                     context = _engine.render.context,
                     bodies = Composite.allBodies(_engine.world),
                     startPoint = { x: 400, y: 100 },
@@ -1216,6 +1271,97 @@
         );
         
         var renderOptions = _engine.render.options;
+    };
+
+    Demo.collisionFiltering = function() {
+        var _world = _engine.world;
+
+        // define our categories (as bit fields, there are up to 32 available)
+
+        var defaultCategory = 0x0001,
+            redCategory = 0x0002,
+            greenCategory = 0x0004,
+            blueCategory = 0x0008;
+
+        var redColor = '#C44D58',
+            blueColor = '#4ECDC4',
+            greenColor = '#C7F464';
+
+        Demo.reset();
+
+        // create a stack with varying body categories (but these bodies can all collide with each other)
+
+        World.add(_world,
+            Composites.stack(275, 150, 5, 10, 10, 10, function(x, y, column, row) {
+                var category = redCategory,
+                    color = redColor;
+
+                if (row > 5) {
+                    category = blueCategory;
+                    color = blueColor;
+                } else if (row > 2) {
+                    category = greenCategory;
+                    color = greenColor;
+                }
+
+                return Bodies.circle(x, y, 20, {
+                    collisionFilter: {
+                        category: category
+                    },
+                    render: {
+                        strokeStyle: color,
+                        fillStyle: 'transparent'
+                    }
+                });
+            })
+        );
+
+        // this body will only collide with the walls and the green bodies
+
+        World.add(_world,
+            Bodies.circle(310, 40, 30, {
+                collisionFilter: {
+                    mask: defaultCategory | greenCategory
+                },
+                render: {
+                    strokeStyle: Common.shadeColor(greenColor, -20),
+                    fillStyle: greenColor
+                }
+            })
+        );
+
+        // this body will only collide with the walls and the red bodies
+
+        World.add(_world,
+            Bodies.circle(400, 40, 30, {
+                collisionFilter: {
+                    mask: defaultCategory | redCategory
+                },
+                render: {
+                    strokeStyle: Common.shadeColor(redColor, -20),
+                    fillStyle: redColor
+                }
+            })
+        );
+
+        // this body will only collide with the walls and the blue bodies
+
+        World.add(_world,
+            Bodies.circle(480, 40, 30, {
+                collisionFilter: {
+                    mask: defaultCategory | blueCategory
+                },
+                render: {
+                    strokeStyle: Common.shadeColor(blueColor, -20),
+                    fillStyle: blueColor
+                }
+            })
+        );
+
+        var renderOptions = _engine.render.options;
+        renderOptions.wireframes = false;
+        renderOptions.background = '#222';
+        renderOptions.showAngleIndicator = false;
     };
 
     // the functions for the demo interface and controls below
@@ -1329,6 +1475,17 @@
         // clear all scene events
         for (var i = 0; i < _sceneEvents.length; i++)
             Events.off(_engine, _sceneEvents[i]);
+
+        if (_mouseConstraint.events) {
+            for (i = 0; i < _sceneEvents.length; i++)
+                Events.off(_mouseConstraint, _sceneEvents[i]);
+        }
+
+        if (_world.events) {
+            for (i = 0; i < _sceneEvents.length; i++)
+                Events.off(_world, _sceneEvents[i]);
+        }
+
         _sceneEvents = [];
 
         // reset id pool
@@ -1338,8 +1495,8 @@
         Common._seed = 0;
 
         // reset mouse offset and scale (only required for Demo.views)
-        Mouse.setScale(_engine.input.mouse, { x: 1, y: 1 });
-        Mouse.setOffset(_engine.input.mouse, { x: 0, y: 0 });
+        Mouse.setScale(_mouseConstraint.mouse, { x: 1, y: 1 });
+        Mouse.setOffset(_mouseConstraint.mouse, { x: 0, y: 0 });
 
         _engine.enableSleeping = false;
         _engine.world.gravity.y = 1;

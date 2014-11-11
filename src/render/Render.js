@@ -204,8 +204,8 @@ var Render = {};
 
         Render.constraints(constraints, context);
 
-        if (options.showBroadphase && engine.broadphase.current === 'grid')
-            Render.grid(engine, engine.broadphase[engine.broadphase.current].instance, context);
+        if (options.showBroadphase && engine.broadphase.controller === Grid)
+            Render.grid(engine, engine.broadphase, context);
 
         if (options.showDebug)
             Render.debug(engine, context);
@@ -770,7 +770,6 @@ var Render = {};
      */
     Render.inspector = function(inspector, context) {
         var engine = inspector.engine,
-            mouse = engine.input.mouse,
             selected = inspector.selected,
             c = context,
             render = engine.render,

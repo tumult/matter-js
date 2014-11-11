@@ -10,8 +10,6 @@
 * @class Composite
 */
 
-// TODO: composite translate, rotate
-
 var Composite = {};
 
 (function() {
@@ -63,6 +61,7 @@ var Composite = {};
 
     /**
      * Generic add function. Adds one or many body(s), constraint(s) or a composite(s) to the given composite.
+     * Triggers `beforeAdd` and `afterAdd` events on the `composite`.
      * @method add
      * @param {composite} composite
      * @param {} object
@@ -70,6 +69,8 @@ var Composite = {};
      */
     Composite.add = function(composite, object) {
         var objects = [].concat(object);
+
+        Events.trigger(composite, 'beforeAdd', { object: object });
 
         for (var i = 0; i < objects.length; i++) {
             var obj = objects[i];
@@ -92,12 +93,15 @@ var Composite = {};
             }
         }
 
+        Events.trigger(composite, 'afterAdd', { object: object });
+
         return composite;
     };
 
     /**
      * Generic remove function. Removes one or many body(s), constraint(s) or a composite(s) to the given composite.
      * Optionally searching its children recursively.
+     * Triggers `beforeRemove` and `afterRemove` events on the `composite`.
      * @method remove
      * @param {composite} composite
      * @param {} object
@@ -106,6 +110,8 @@ var Composite = {};
      */
     Composite.remove = function(composite, object, deep) {
         var objects = [].concat(object);
+
+        Events.trigger(composite, 'beforeRemove', { object: object });
 
         for (var i = 0; i < objects.length; i++) {
             var obj = objects[i];
@@ -128,11 +134,14 @@ var Composite = {};
             }
         }
 
+        Events.trigger(composite, 'afterRemove', { object: object });
+
         return composite;
     };
 
     /**
      * Adds a composite to the given composite
+     * @private
      * @method addComposite
      * @param {composite} compositeA
      * @param {composite} compositeB
@@ -147,6 +156,7 @@ var Composite = {};
 
     /**
      * Removes a composite from the given composite, and optionally searching its children recursively
+     * @private
      * @method removeComposite
      * @param {composite} compositeA
      * @param {composite} compositeB
@@ -171,6 +181,7 @@ var Composite = {};
 
     /**
      * Removes a composite from the given composite
+     * @private
      * @method removeCompositeAt
      * @param {composite} composite
      * @param {number} position
@@ -184,6 +195,7 @@ var Composite = {};
 
     /**
      * Adds a body to the given composite
+     * @private
      * @method addBody
      * @param {composite} composite
      * @param {body} body
@@ -197,6 +209,7 @@ var Composite = {};
 
     /**
      * Removes a body from the given composite, and optionally searching its children recursively
+     * @private
      * @method removeBody
      * @param {composite} composite
      * @param {body} body
@@ -221,6 +234,7 @@ var Composite = {};
 
     /**
      * Removes a body from the given composite
+     * @private
      * @method removeBodyAt
      * @param {composite} composite
      * @param {number} position
@@ -234,6 +248,7 @@ var Composite = {};
 
     /**
      * Adds a constraint to the given composite
+     * @private
      * @method addConstraint
      * @param {composite} composite
      * @param {constraint} constraint
@@ -247,6 +262,7 @@ var Composite = {};
 
     /**
      * Removes a constraint from the given composite, and optionally searching its children recursively
+     * @private
      * @method removeConstraint
      * @param {composite} composite
      * @param {constraint} constraint
@@ -270,6 +286,7 @@ var Composite = {};
 
     /**
      * Removes a body from the given composite
+     * @private
      * @method removeConstraintAt
      * @param {composite} composite
      * @param {number} position
@@ -421,6 +438,133 @@ var Composite = {};
 
         return composite;
     };
+
+    /**
+     * Translates all children in the composite by a given vector relative to their current positions, 
+     * without imparting any velocity.
+     * @method translate
+     * @param {composite} composite
+     * @param {vector} translation
+     * @param {bool} [recursive=true]
+     */
+    Composite.translate = function(composite, translation, recursive) {
+        var bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
+
+        for (var i = 0; i < bodies.length; i++) {
+            Body.translate(bodies[i], translation);
+        }
+
+        Composite.setModified(composite, true, true, false);
+
+        return composite;
+    };
+
+    /**
+     * Rotates all children in the composite by a given angle about the given point, without imparting any angular velocity.
+     * @method rotate
+     * @param {composite} composite
+     * @param {number} rotation
+     * @param {vector} point
+     * @param {bool} [recursive=true]
+     */
+    Composite.rotate = function(composite, rotation, point, recursive) {
+        var cos = Math.cos(rotation),
+            sin = Math.sin(rotation),
+            bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
+
+        for (var i = 0; i < bodies.length; i++) {
+            var body = bodies[i],
+                dx = body.position.x - point.x,
+                dy = body.position.y - point.y;
+                
+            Body.setPosition(body, {
+                x: point.x + (dx * cos - dy * sin),
+                y: point.y + (dx * sin + dy * cos)
+            });
+
+            Body.rotate(body, rotation);
+        }
+
+        Composite.setModified(composite, true, true, false);
+
+        return composite;
+    };
+
+    /**
+     * Scales all children in the composite, including updating physical properties (mass, area, axes, inertia), from a world-space point.
+     * @method scale
+     * @param {composite} composite
+     * @param {number} scaleX
+     * @param {number} scaleY
+     * @param {vector} point
+     * @param {bool} [recursive=true]
+     */
+    Composite.scale = function(composite, scaleX, scaleY, point, recursive) {
+        var bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
+
+        for (var i = 0; i < bodies.length; i++) {
+            var body = bodies[i],
+                dx = body.position.x - point.x,
+                dy = body.position.y - point.y;
+                
+            Body.setPosition(body, {
+                x: point.x + dx * scaleX,
+                y: point.y + dy * scaleY
+            });
+
+            Body.scale(body, scaleX, scaleY);
+        }
+
+        Composite.setModified(composite, true, true, false);
+
+        return composite;
+    };
+
+    /*
+    *
+    *  Events Documentation
+    *
+    */
+
+    /**
+    * Fired when a call to `Composite.add` is made, before objects have been added.
+    *
+    * @event beforeAdd
+    * @param {} event An event object
+    * @param {} event.object The object(s) to be added (may be a single body, constraint, composite or a mixed array of these)
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
+    */
+
+    /**
+    * Fired when a call to `Composite.add` is made, after objects have been added.
+    *
+    * @event afterAdd
+    * @param {} event An event object
+    * @param {} event.object The object(s) that have been added (may be a single body, constraint, composite or a mixed array of these)
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
+    */
+
+    /**
+    * Fired when a call to `Composite.remove` is made, before objects have been removed.
+    *
+    * @event beforeRemove
+    * @param {} event An event object
+    * @param {} event.object The object(s) to be removed (may be a single body, constraint, composite or a mixed array of these)
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
+    */
+
+    /**
+    * Fired when a call to `Composite.remove` is made, after objects have been removed.
+    *
+    * @event afterRemove
+    * @param {} event An event object
+    * @param {} event.object The object(s) that have been removed (may be a single body, constraint, composite or a mixed array of these)
+    * @param {} event.source The source object of the event
+    * @param {} event.name The name of the event
+    */
 
     /*
     *

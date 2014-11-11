@@ -15,7 +15,8 @@ var Body = {};
 
     Body._inertiaScale = 4;
 
-    var _nextGroupId = 1;
+    var _nextCollidingGroupId = 1,
+        _nextNonCollidingGroupId = -1;
 
     /**
      * Creates a new rigid body model. The options parameter is an object that specifies any properties you wish to override the defaults.
@@ -49,7 +50,11 @@ var Body = {};
             restitution: 0,
             friction: 0.1,
             frictionAir: 0.01,
-            groupId: 0,
+            collisionFilter: {
+                category: 0x0001,
+                mask: 0xFFFFFFFF,
+                group: 0
+            },
             slop: 0.05,
             timeScale: 1,
             render: {
@@ -70,12 +75,18 @@ var Body = {};
     };
 
     /**
-     * Returns the next unique groupID number.
-     * @method nextGroupId
-     * @return {Number} Unique groupID
+     * Returns the next unique group index for which bodies will collide.
+     * If `isNonColliding` is `true`, returns the next unique group index for which bodies will _not_ collide.
+     * See `body.collisionFilter` for more information.
+     * @method nextGroup
+     * @param {bool} [isNonColliding=false]
+     * @return {Number} Unique group index
      */
-    Body.nextGroupId = function() {
-        return _nextGroupId++;
+    Body.nextGroup = function(isNonColliding) {
+        if (isNonColliding)
+            return _nextNonCollidingGroupId--;
+
+        return _nextCollidingGroupId++;
     };
 
     /**
@@ -97,14 +108,13 @@ var Body = {};
         Sleeping.set(body, body.isSleeping);
         Vertices.rotate(body.vertices, body.angle, body.position);
         Axes.rotate(body.axes, body.angle);
+        Bounds.update(body.bounds, body.vertices, body.velocity);
 
         // allow options to override the automatically calculated properties
         body.axes = options.axes || body.axes;
         body.area = options.area || body.area;
-        body.mass = options.mass || body.mass;
-        body.inertia = options.inertia || body.inertia;
-        body.inverseMass = 1 / body.mass;
-        body.inverseInertia = 1 / body.inertia;
+        Body.setMass(body, options.mass || body.mass);
+        Body.setInertia(body, options.inertia || body.inertia);
 
         // render properties
         var defaultFillStyle = (body.isStatic ? '#eeeeee' : Common.choose(['#556270', '#4ECDC4', '#C7F464', '#FF6B6B', '#C44D58'])),
@@ -127,7 +137,6 @@ var Body = {};
             body.friction = 1;
             body.mass = body.inertia = body.density = Infinity;
             body.inverseMass = body.inverseInertia = 0;
-            body.render.lineWidth = 1;
 
             body.positionPrev.x = body.position.x;
             body.positionPrev.y = body.position.y;
@@ -137,6 +146,41 @@ var Body = {};
             body.angularSpeed = 0;
             body.motion = 0;
         }
+    };
+
+    /**
+     * Sets the mass of the body. Inverse mass and density are automatically updated to reflect the change.
+     * @method setMass
+     * @param {body} body
+     * @param {number} mass
+     */
+    Body.setMass = function(body, mass) {
+        body.mass = mass;
+        body.inverseMass = 1 / body.mass;
+        body.density = body.mass / body.area;
+    };
+
+    /**
+     * Sets the density of the body. Mass is automatically updated to reflect the change.
+     * @method setDensity
+     * @param {body} body
+     * @param {number} density
+     */
+    Body.setDensity = function(body, density) {
+        Body.setMass(body, density * body.area);
+        body.density = density;
+    };
+
+    /**
+     * Sets the moment of inertia (i.e. second moment of area) of the body of the body. 
+     * Inverse inertia is automatically updated to reflect the change. Mass is not changed.
+     * @method setInertia
+     * @param {body} body
+     * @param {number} inertia
+     */
+    Body.setInertia = function(body, inertia) {
+        body.inertia = inertia;
+        body.inverseInertia = 1 / body.inertia;
     };
 
     /**
@@ -162,16 +206,14 @@ var Body = {};
         // update properties
         body.axes = Axes.fromVertices(body.vertices);
         body.area = Vertices.area(body.vertices);
-        body.mass = body.density * body.area;
-        body.inverseMass = 1 / body.mass;
+        Body.setMass(body, body.density * body.area);
 
         // orient vertices around the centre of mass at origin (0, 0)
         var centre = Vertices.centre(body.vertices);
         Vertices.translate(body.vertices, centre, -1);
 
         // update inertia while vertices are at origin (0, 0)
-        body.inertia = Body._inertiaScale * Vertices.inertia(body.vertices, body.mass);
-        body.inverseInertia = 1 / body.inertia;
+        Body.setInertia(body, Body._inertiaScale * Vertices.inertia(body.vertices, body.mass));
 
         // update geometry
         Vertices.translate(body.vertices, body.position);
@@ -256,7 +298,7 @@ var Body = {};
      * @param {number} rotation
      */
     Body.rotate = function(body, rotation) {
-        Body.setAngle(body, body.angle + angle);
+        Body.setAngle(body, body.angle + rotation);
     };
 
     /**
@@ -274,13 +316,11 @@ var Body = {};
         // update properties
         body.axes = Axes.fromVertices(body.vertices);
         body.area = Vertices.area(body.vertices);
-        body.mass = body.density * body.area;
-        body.inverseMass = 1 / body.mass;
+        Body.setMass(body, body.density * body.area);
 
         // update inertia (requires vertices to be at origin)
         Vertices.translate(body.vertices, { x: -body.position.x, y: -body.position.y });
-        body.inertia = Vertices.inertia(body.vertices, body.mass);
-        body.inverseInertia = 1 / body.inertia;
+        Body.setInertia(body, Vertices.inertia(body.vertices, body.mass));
         Vertices.translate(body.vertices, { x: body.position.x, y: body.position.y });
 
         // update bounds
@@ -643,18 +683,62 @@ var Body = {};
      */
 
     /**
-     * An integer `Number` that specifies the collision group the body belongs to. 
-     * Bodies with the same `groupId` are considered _as-one_ body and therefore do not interact.
-     * This allows for creation of segmented bodies that can self-intersect, such as a rope.
-     * The default value 0 means the body does not belong to a group, and can interact with all other bodies.
+     * An `Object` that specifies the collision filtering properties of this body.
      *
-     * @property groupId
-     * @type number
+     * Collisions between two bodies will obey the following rules:
+     * - If the two bodies have the same non-zero value of `collisionFilter.group`,
+     *   they will always collide if the value is positive, and they will never collide
+     *   if the value is negative.
+     * - If the two bodies have different values of `collisionFilter.group` or if one
+     *   (or both) of the bodies has a value of 0, then the category/mask rules apply as follows:
+     *
+     * Each body belongs to a collision category, given by `collisionFilter.category`. This
+     * value is used as a bit field and the category should have only one bit set, meaning that
+     * the value of this property is a power of two in the range [1, 2^31]. Thus, there are 32
+     * different collision categories available.
+     *
+     * Each body also defines a collision bitmask, given by `collisionFilter.mask` which specifies
+     * the categories it collides with (the value is the bitwise AND value of all these categories).
+     *
+     * Using the category/mask rules, two bodies `A` and `B` collide if each includes the other's
+     * category in its mask, i.e. `(categoryA & maskB) !== 0` and `(categoryB & maskA) !== 0`
+     * are both true.
+     *
+     * @property collisionFilter
+     * @type object
+     */
+
+    /**
+     * An Integer `Number`, that specifies the collision group this body belongs to.
+     * See `body.collisionFilter` for more information.
+     *
+     * @property collisionFilter.group
+     * @type object
      * @default 0
      */
 
     /**
-     * A `Number` that specifies a tollerance on how far a body is allowed to 'sink' or rotate into other bodies.
+     * A bit field that specifies the collision category this body belongs to.
+     * The category value should have only one bit set, for example `0x0001`.
+     * This means there are up to 32 unique collision categories available.
+     * See `body.collisionFilter` for more information.
+     *
+     * @property collisionFilter.category
+     * @type object
+     * @default 1
+     */
+
+    /**
+     * A bit mask that specifies the collision categories this body may collide with.
+     * See `body.collisionFilter` for more information.
+     *
+     * @property collisionFilter.mask
+     * @type object
+     * @default -1
+     */
+
+    /**
+     * A `Number` that specifies a tolerance on how far a body is allowed to 'sink' or rotate into other bodies.
      * Avoid changing this value unless you understand the purpose of `slop` in physics engines.
      * The default should generally suffice, although very large bodies may require larger values for stable stacking.
      *
