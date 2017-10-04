@@ -138,7 +138,7 @@ var Common = require('../core/Common');
         if (signed)
             return area / 2;
 
-        return Math.abs(area) / 2;
+        return Common.abs(area) / 2;
     };
 
     /**
@@ -159,7 +159,7 @@ var Common = require('../core/Common');
         // from equations at http://www.physicsforums.com/showthread.php?t=25293
         for (var n = 0; n < v.length; n++) {
             j = (n + 1) % v.length;
-            cross = Math.abs(Vector.cross(v[j], v[n]));
+            cross = Common.abs(Vector.cross(v[j], v[n]));
             numerator += cross * (Vector.dot(v[j], v[j]) + Vector.dot(v[j], v[n]) + Vector.dot(v[n], v[n]));
             denominator += cross;
         }
@@ -202,8 +202,8 @@ var Common = require('../core/Common');
         if (angle === 0)
             return;
 
-        var cos = Math.cos(angle),
-            sin = Math.sin(angle);
+        var cos = Common.cos(angle),
+            sin = Common.sin(angle);
 
         for (var i = 0; i < vertices.length; i++) {
             var vertice = vertices[i],
@@ -307,7 +307,7 @@ var Common = require('../core/Common');
                 y: vertex.x - nextVertex.x
             });
 
-            var diagonalRadius = Math.sqrt(2 * Math.pow(currentRadius, 2)),
+            var diagonalRadius = Common.sqrt(2 * Math.pow(currentRadius, 2)),
                 radiusVector = Vector.mult(Common.clone(prevNormal), currentRadius),
                 midNormal = Vector.normalise(Vector.mult(Vector.add(prevNormal, nextNormal), 0.5)),
                 scaledVertex = Vector.sub(vertex, Vector.mult(midNormal, diagonalRadius));
@@ -325,7 +325,7 @@ var Common = require('../core/Common');
             if (precision % 2 === 1)
                 precision += 1;
 
-            var alpha = Math.acos(Vector.dot(prevNormal, nextNormal)),
+            var alpha = Common.acos(Vector.dot(prevNormal, nextNormal)),
                 theta = alpha / precision;
 
             for (var j = 0; j < precision; j++) {

@@ -474,7 +474,7 @@ var Axes = require('../geometry/Axes');
     Body.setAngularVelocity = function(body, velocity) {
         body.anglePrev = body.angle - velocity;
         body.angularVelocity = velocity;
-        body.angularSpeed = Math.abs(body.angularVelocity);
+        body.angularSpeed = Common.abs(body.angularVelocity);
     };
 
     /**
@@ -498,8 +498,8 @@ var Axes = require('../geometry/Axes');
         if (!point) {
             Body.setAngle(body, body.angle + rotation);
         } else {
-            var cos = Math.cos(rotation),
-                sin = Math.sin(rotation),
+            var cos = Common.cos(rotation),
+                sin = Common.sin(rotation),
                 dx = body.position.x - point.x,
                 dy = body.position.y - point.y;
                 
@@ -594,7 +594,7 @@ var Axes = require('../geometry/Axes');
 
         // track speed and acceleration
         body.speed = Vector.magnitude(body.velocity);
-        body.angularSpeed = Math.abs(body.angularVelocity);
+        body.angularSpeed = Common.abs(body.angularVelocity);
 
         // transform the body geometry
         for (var i = 0; i < body.parts.length; i++) {

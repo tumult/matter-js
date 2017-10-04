@@ -14,6 +14,8 @@ var Vector = {};
 
 module.exports = Vector;
 
+var Common = require('../core/Common');
+
 (function() {
 
     /**
@@ -44,7 +46,7 @@ module.exports = Vector;
      * @return {number} The magnitude of the vector
      */
     Vector.magnitude = function(vector) {
-        return Math.sqrt((vector.x * vector.x) + (vector.y * vector.y));
+        return Common.sqrt((vector.x * vector.x) + (vector.y * vector.y));
     };
 
     /**
@@ -66,7 +68,7 @@ module.exports = Vector;
      * @return {vector} The vector rotated about (0, 0)
      */
     Vector.rotate = function(vector, angle, output) {
-        var cos = Math.cos(angle), sin = Math.sin(angle);
+        var cos = Common.cos(angle), sin = Common.sin(angle);
         if (!output) output = {};
         var x = vector.x * cos - vector.y * sin;
         output.y = vector.x * sin + vector.y * cos;
@@ -84,7 +86,7 @@ module.exports = Vector;
      * @return {vector} A new vector rotated about the point
      */
     Vector.rotateAbout = function(vector, angle, point, output) {
-        var cos = Math.cos(angle), sin = Math.sin(angle);
+        var cos = Common.cos(angle), sin = Common.sin(angle);
         if (!output) output = {};
         var x = point.x + ((vector.x - point.x) * cos - (vector.y - point.y) * sin);
         output.y = point.y + ((vector.x - point.x) * sin + (vector.y - point.y) * cos);
@@ -221,7 +223,7 @@ module.exports = Vector;
      * @return {number} The angle in radians
      */
     Vector.angle = function(vectorA, vectorB) {
-        return Math.atan2(vectorB.y - vectorA.y, vectorB.x - vectorA.x);
+        return Common.atan2(vectorB.y - vectorA.y, vectorB.x - vectorA.x);
     };
 
     /**

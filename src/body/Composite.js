@@ -480,8 +480,8 @@ var Body = require('./Body');
      * @param {bool} [recursive=true]
      */
     Composite.rotate = function(composite, rotation, point, recursive) {
-        var cos = Math.cos(rotation),
-            sin = Math.sin(rotation),
+        var cos = Common.cos(rotation),
+            sin = Common.sin(rotation),
             bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
 
         for (var i = 0; i < bodies.length; i++) {

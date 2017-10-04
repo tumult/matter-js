@@ -270,7 +270,7 @@ var Bounds = require('../geometry/Bounds');
                     normalVelocity = Vector.dot(normal, relativeVelocity);
 
                 var tangentVelocity = Vector.dot(tangent, relativeVelocity),
-                    tangentSpeed = Math.abs(tangentVelocity),
+                    tangentSpeed = Common.abs(tangentVelocity),
                     tangentVelocityDirection = Common.sign(tangentVelocity);
 
                 // raw impulses
