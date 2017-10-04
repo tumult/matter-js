@@ -72,6 +72,24 @@ var Common = require('../core/Common');
 
         return Vertices.create(points, body);
     };
+ 
+    /**
+     * Returns the bounds of the set of vertices by looking at the min/max x and y
+     * @method bounds
+     * @param {vertices} vertices
+     * @return {numbers} The bounds point
+     */
+    Vertices.bounds = function(vertices) {
+		var bounds = { min: {x: Number.MAX_VALUE, y:Number.MAX_VALUE}, max: {x: Number.MIN_VALUE, y:Number.MIN_VALUE} };
+
+		for (var i = 0; i < vertices.length; i++) {
+			bounds.min.x = Math.min(vertices[i].x, bounds.min.x);
+			bounds.max.x = Math.max(vertices[i].x, bounds.max.x);
+			bounds.min.y = Math.min(vertices[i].y, bounds.min.y);
+			bounds.max.y = Math.max(vertices[i].y, bounds.max.y);
+		}
+		return bounds;
+    }
 
     /**
      * Returns the centre (centroid) of the set of vertices.
@@ -80,20 +98,8 @@ var Common = require('../core/Common');
      * @return {vector} The centre point
      */
     Vertices.centre = function(vertices) {
-        var area = Vertices.area(vertices, true),
-            centre = { x: 0, y: 0 },
-            cross,
-            temp,
-            j;
-
-        for (var i = 0; i < vertices.length; i++) {
-            j = (i + 1) % vertices.length;
-            cross = Vector.cross(vertices[i], vertices[j]);
-            temp = Vector.mult(Vector.add(vertices[i], vertices[j]), cross);
-            centre = Vector.add(centre, temp);
-        }
-
-        return Vector.div(centre, 6 * area);
+    	var bounds = Vertices.bounds(vertices);
+        return { x: ((bounds.max.x + bounds.min.x) / 2), y: ((bounds.max.y + bounds.min.y) / 2) };
     };
 
     /**

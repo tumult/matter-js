@@ -658,12 +658,18 @@ var Axes = require('../geometry/Axes');
             properties.mass += part.mass;
             properties.area += part.area;
             properties.inertia += part.inertia;
-            properties.centre = Vector.add(properties.centre, 
-                                           Vector.mult(part.position, part.mass !== Infinity ? part.mass : 1));
         }
-
-        properties.centre = Vector.div(properties.centre, 
-                                       properties.mass !== Infinity ? properties.mass : body.parts.length);
+		
+		// calculate center by finding entire bounds of all parts
+		var totalBounds = { min: {x: Number.MAX_VALUE, y:Number.MAX_VALUE}, max: {x: Number.MIN_VALUE, y:Number.MIN_VALUE} };
+    	for (var i = 0; i < body.parts.length; i++) {
+            var bounds = Vertices.bounds(body.parts[i].vertices);
+            totalBounds.min.x = Math.min(bounds.min.x, totalBounds.min.x);
+			totalBounds.max.x = Math.max(bounds.max.x, totalBounds.max.x);
+			totalBounds.min.y = Math.min(bounds.min.y, totalBounds.min.y);
+			totalBounds.max.y = Math.max(bounds.max.y, totalBounds.max.y);
+    	}        
+        properties.centre = { x: ((totalBounds.max.x + totalBounds.min.x) / 2), y: ((totalBounds.max.y + totalBounds.min.y) / 2) };
 
         return properties;
     };
