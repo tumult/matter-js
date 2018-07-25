@@ -154,8 +154,8 @@ var decomp;
 
         for (var i = 0; i < sides; i += 1) {
             var angle = offset + (i * theta),
-                xx = Common.cos(angle) * radius,
-                yy = Common.sin(angle) * radius;
+                xx = Math.cos(angle) * radius,
+                yy = Math.sin(angle) * radius;
 
             path += 'L ' + xx.toFixed(3) + ' ' + yy.toFixed(3) + ' ';
         }

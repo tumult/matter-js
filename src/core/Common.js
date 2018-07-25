@@ -535,61 +535,6 @@ module.exports = Common;
             func
         ));
     };
-    
-        /**
-     * Wrap sin to be browser-agnostic
-     * @method sin
-     * @param {x} A number (given in radians)
-     */
-    Common.sin = function(x) {
-        return parseFloat(Math.sin(x).toFixed(8));
-    };
-
-    /**
-     * Wrap cos to be browser-agnostic
-     * @method cos
-     * @param {x} A number (given in radians)
-     */
-    Common.cos = function(x) {
-        return parseFloat(Math.cos(x).toFixed(8));
-    };
-
-    /**
-     * Wrap sqrt to be browser-agnostic
-     * @method sqrt
-     * @param {x} A number
-     */
-	Common.sqrt = function(x) {
-		return parseFloat(Math.sqrt(x).toFixed(8));
-    };
-
-    /**
-     * Wrap abs to be browser-agnostic
-     * @method abs
-     * @param {x} A number
-     */
-	Common.abs = function(x) {
-        return parseFloat(Math.abs(x).toFixed(8));
-    };
- 
-     /**
-     * Wrap atan2 to be browser-agnostic
-     * @method atan2
-     * @param {x} A number
-     */
-	Common.atan2 = function(x) {
-        return parseFloat(Math.atan2(x).toFixed(8));
-    };
- 
-    /**
-     * Wrap acos to be browser-agnostic
-     * @method acos
-     * @param {x} A number
-     */
-	Common.acos = function(x) {
-        return parseFloat(Math.acos(x).toFixed(8));
-    };
-
 
     /**
      * Used to require external libraries outside of the bundle.

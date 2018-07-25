@@ -49,8 +49,8 @@ var Common = require('../core/Common');
         if (angle === 0)
             return;
         
-        var cos = Common.cos(angle),
-            sin = Common.sin(angle);
+        var cos = Math.cos(angle),
+            sin = Math.sin(angle);
 
         for (var i = 0; i < axes.length; i++) {
             var axis = axes[i],
