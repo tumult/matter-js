@@ -12,8 +12,8 @@ var Events = require('./Events');
 
 (function() {
 
-    Sleeping._motionWakeThreshold = 0.2;
-    Sleeping._motionSleepThreshold = 0.1;
+    Sleeping._motionWakeThreshold = 0.18;
+    Sleeping._motionSleepThreshold = 0.08;
     Sleeping._minBias = 0.9;
 
     /**
