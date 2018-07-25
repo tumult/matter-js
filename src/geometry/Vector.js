@@ -14,6 +14,8 @@ var Vector = {};
 
 module.exports = Vector;
 
+var Common = require('../core/Common');
+
 (function() {
 
     /**
