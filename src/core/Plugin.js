@@ -13,6 +13,7 @@ var Common = require('./Common');
 (function() {
 
     Plugin._registry = {};
+    Plugin._forKey = "for";
 
     /**
      * Registers a plugin object so it can be resolved later by name.
@@ -101,8 +102,8 @@ var Common = require('./Common');
      * @return {boolean} `true` if `plugin.for` is applicable to `module`, otherwise `false`.
      */
     Plugin.isFor = function(plugin, module) {
-        var parsed = plugin.for && Plugin.dependencyParse(plugin.for);
-        return !plugin.for || (module.name === parsed.name && Plugin.versionSatisfies(module.version, parsed.range));
+        var parsed = plugin[Plugin._forKey] && Plugin.dependencyParse(plugin[Plugin._forKey]);
+        return !plugin[Plugin._forKey] || (module.name === parsed.name && Plugin.versionSatisfies(module.version, parsed.range));
     };
 
     /**
@@ -150,7 +151,7 @@ var Common = require('./Common');
             }
 
             if (!Plugin.isFor(plugin, module)) {
-                Common.warn('Plugin.use:', Plugin.toString(plugin), 'is for', plugin.for, 'but installed on', Plugin.toString(module) + '.');
+                Common.warn('Plugin.use:', Plugin.toString(plugin), 'is for', plugin[Plugin._forKey], 'but installed on', Plugin.toString(module) + '.');
                 plugin._warned = true;
             }
 
