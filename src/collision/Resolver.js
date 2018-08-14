@@ -101,6 +101,9 @@ var Bounds = require('../geometry/Bounds');
 
             separation = normalX * bodyBtoAX + normalY * bodyBtoAY;
             pair.separation = separation;
+            
+            if(pair.separation < 0)
+        		continue;
 
             positionImpulse = (separation - pair.slop) * impulseCoefficient;
 
